@@ -16,7 +16,8 @@ services:
     runtime: docker
     plan: free  # Change to the appropriate plan
     dockerfilePath: ./Dockerfile
-    buildCommand: "docker-compose build"
+    buildCommand: "mvn clean package"
+    startCommand: "docker-compose up --build"
     envVars:
       - key: SPRING_DATASOURCE_URL
         value: jdbc:postgresql://db:5432/chat_with_me
