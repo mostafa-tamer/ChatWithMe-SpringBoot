@@ -1,6 +1,7 @@
 package com.mostafatamer.trysomethingcrazy.repository;
 
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatEntity;
+import com.mostafatamer.trysomethingcrazy.domain.entity.UserEntity;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -12,8 +13,9 @@ import java.util.Optional;
 @Repository
 public interface ChatRepository extends CrudRepository<ChatEntity, Long> {
 
-    @Query("SELECT c FROM ChatEntity c JOIN c.users u WHERE u.id IN :userIds")
-    Optional<ChatEntity> findChatByChatMembers(@Param("userIds") List<Long> userIds);
+    @Query("SELECT c FROM ChatEntity c WHERE SIZE(c.users) = 2 AND :user1 MEMBER OF c.users AND :user2 MEMBER OF c.users")
+    Optional<ChatEntity> findChatByUsers(@Param("user1") UserEntity user1, @Param("user2") UserEntity user2);
+
 
     Optional<ChatEntity> findByTag(String chatTag);
 

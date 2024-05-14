@@ -19,8 +19,6 @@ import java.util.UUID;
 public class ChatService {
 
     private final ChatRepository chatRepository;
-    private final UserRepository userRepository;
-    private final FriendshipRepository friendshipRepository;
 
     public ChatEntity save(ChatEntity chatEntity) {
         chatEntity.setTag(UUID.randomUUID().toString());
@@ -33,8 +31,7 @@ public class ChatService {
         List<ChatEntity> chats = new ArrayList<>();
 
         for (UserEntity userFriend : userFriends) {
-            List<Long> userIds = List.of(userFriend.getId(), user.getId());
-            ChatEntity chat = chatRepository.findChatByChatMembers(userIds)
+            ChatEntity chat = chatRepository.findChatByUsers(userFriend , user)
                     .orElseThrow(() -> new IllegalArgumentException("chat not found"));
             chats.add(chat);
         }

@@ -1,7 +1,7 @@
 package com.mostafatamer.trysomethingcrazy.controller;
 
 
-import com.mostafatamer.trysomethingcrazy.domain.*;
+import com.mostafatamer.trysomethingcrazy.domain.ApiResponse;
 import com.mostafatamer.trysomethingcrazy.domain.auth.AuthenticationRequest;
 import com.mostafatamer.trysomethingcrazy.domain.auth.AuthenticationResponse;
 import com.mostafatamer.trysomethingcrazy.domain.auth.RegistrationRequest;
@@ -40,5 +40,10 @@ public class AuthenticationController {
         return ApiResponse.<AuthenticationResponse>builder()
                 .data(authenticationService.authenticate(request))
                 .build();
+    }
+
+    @GetMapping("/hello")
+    String greetings() {
+        return "Greetings from Chat with Me!";
     }
 }

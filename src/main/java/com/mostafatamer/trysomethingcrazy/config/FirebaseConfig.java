@@ -7,6 +7,7 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,11 +23,10 @@ public class FirebaseConfig {
 
     @Bean
     FirebaseApp firebaseApp() throws IOException {
-        FileInputStream refreshToken = new FileInputStream("src/main/resources/chat-with-me-f3093-firebase-adminsdk-g9pku-1968c5b53c.json");
+        ClassPathResource resource = new ClassPathResource("chat-with-me-f3093-firebase-adminsdk-g9pku-1968c5b53c.json");
 
         FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(refreshToken))
-                //
+                .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
                 .setDatabaseUrl("https://chat-with-me-f3093.firebaseio.com/")
                 .build();
 

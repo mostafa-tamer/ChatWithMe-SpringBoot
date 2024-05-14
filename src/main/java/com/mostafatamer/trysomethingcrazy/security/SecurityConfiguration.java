@@ -40,6 +40,7 @@ public class SecurityConfiguration {
                                 .requestMatchers(
                                         "/auth/register",
                                         "/auth/authenticate",
+                                        "/auth/hello",
                                         "/v3/api-docs",
                                         "/swagger-ui/index.html"
                                 ).permitAll()

@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 @SpringBootTest
 @ExtendWith(SpringExtension.class)
@@ -42,20 +43,21 @@ public class AuthenticationControllerTest {
                 .nickname("Mostafa Tamer")
                 .username("mostafasda32443")
                 .password("12345678")
+                .firebaseToken("dummyToken")
                 .build();
 
         String content = objectMapper.writeValueAsString(registrationRequest);
+
 
         mockMvc.perform(MockMvcRequestBuilders.post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(content)
                 ).andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(
-                        MockMvcResultMatchers.jsonPath("$.nickname").value("Mostafa Tamer")
+                        MockMvcResultMatchers.jsonPath("$.data.nickname").value("Mostafa Tamer")
                 ).andExpect(
-                        MockMvcResultMatchers.jsonPath("$.username").value("mostafasda32443")
-                );
-
+                        MockMvcResultMatchers.jsonPath("$.data.username").value("mostafasda32443")
+                ).andDo(print());
 
         UserEntity userEntity = userService.findByUsername("mostafasda32443");
 

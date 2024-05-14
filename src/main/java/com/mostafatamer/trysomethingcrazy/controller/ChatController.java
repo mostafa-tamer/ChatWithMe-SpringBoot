@@ -92,8 +92,7 @@ public class ChatController {
                         .build()
         );
 
-        log.info(chatMessageDto.getSenderUsername() + " " +
-                chatMessageDto.getMessage());
+        log.info(chatMessageDto.getSenderUsername() + " " + chatMessageDto.getMessage());
     }
 
     private ChatMessageEntity saveMessage(ChatMessageDto chatMessageDto, ChatEntity chatEntity) {
@@ -135,9 +134,7 @@ public class ChatController {
         List<ChatDto> chatResponse = chats.stream()
                 .map(chatEntity -> {
                     String other = getOtherUser(chatEntity, user).getUsername();
-
                     UserEntity friendEntity = userService.findByUsername(other);
-
                     UserDto friend = userMapper.entityToDto(friendEntity);
 
                     return ChatDto.builder()
@@ -151,8 +148,7 @@ public class ChatController {
                 .build();
     }
 
-    private UserEntity getOtherUser(ChatEntity chatEntity, UserEntity user) {
-        chatEntity.getUsers().stream().map(UserEntity::getUsername).forEach(System.out::println);
+    private UserEntity getOtherUser(ChatEntity chatEntity, UserEntity user) { 
         return chatEntity.getUsers().stream()
                 .filter(userEntity -> !userEntity.getUsername().equals(user.getUsername()))
                 .findFirst()

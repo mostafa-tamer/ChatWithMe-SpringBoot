@@ -26,8 +26,7 @@ public class FirebaseMessagingService {
 
     @SneakyThrows
     public <T> String sendClientMessage(String token, CloudMessage<T> payload) {
-        if (token == null)
-            throw new NullPointerException("token is null");
+        if (token == null) return "token is null";
 
         Message msg = Message.builder()
                 .setToken(token)
