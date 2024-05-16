@@ -20,14 +20,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 public class AuthenticationController {
 
-    private final AuthenticationService authenticationService;
-    private final UserMapper userMapper;
+    private final  AuthenticationService authenticationService ;
 
 
     @PostMapping("/register")
     ApiResponse<UserDto> register(
             @RequestBody @Valid RegistrationRequest registrationRequest
     ) {
+
         return ApiResponse.<UserDto>builder()
                 .data(authenticationService.register(registrationRequest))
                 .build();
