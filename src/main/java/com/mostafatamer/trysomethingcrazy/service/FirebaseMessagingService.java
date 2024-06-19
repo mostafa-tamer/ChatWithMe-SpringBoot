@@ -25,15 +25,14 @@ public class FirebaseMessagingService {
     }
 
     @SneakyThrows
-    public <T> String sendClientMessage(String token, CloudMessage<T> payload) {
-        if (token == null) return "token is null";
-
-        Message msg = Message.builder()
-                .setToken(token)
-                .putData("cloud_message", payload.toString())
-                .build();
-
-        return FirebaseMessaging.getInstance().send(msg);
+    public <T> void sendClientMessage(String token, CloudMessage<T> payload) {
+        if (token != null) {
+            Message msg = Message.builder()
+                    .setToken(token)
+                    .putData("cloud_message", payload.toString())
+                    .build();
+            FirebaseMessaging.getInstance().send(msg);
+        }
     }
 
     @SneakyThrows

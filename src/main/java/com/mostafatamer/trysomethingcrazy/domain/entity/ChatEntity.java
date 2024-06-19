@@ -25,5 +25,5 @@ public class ChatEntity {
     List<ChatMessageEntity> messages;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    List<UserEntity> users; // they must be exactly 2
+    List<UserEntity> members; // they must be exactly 2
 }

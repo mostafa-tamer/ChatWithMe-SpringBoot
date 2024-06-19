@@ -18,10 +18,10 @@ public class MessagesService {
     public ChatMessageEntity save(ChatMessageEntity chatMessageEntity) {
 
         ChatEntity chatEntity = chatMessageEntity.getChat();
-        var messageOptional = messagesRepository.getMessageWithMaxTimeStamp(chatEntity);
+        var largestMessageNumberInChat = messagesRepository.getLargestMessageNumberInChat(chatEntity);
 
-        messageOptional.ifPresentOrElse(
-                message -> chatMessageEntity.setMessageNumber(message.getMessageNumber() + 1L),
+        largestMessageNumberInChat.ifPresentOrElse(
+                integer -> chatMessageEntity.setMessageNumber(integer+ 1L),
                 () -> chatMessageEntity.setMessageNumber(1L)
         );
 

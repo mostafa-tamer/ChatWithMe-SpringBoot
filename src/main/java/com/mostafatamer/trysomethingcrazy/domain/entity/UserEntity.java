@@ -46,7 +46,7 @@ public class UserEntity implements UserDetails, Principal {
     List<FriendRequestEntity> friendRequests;
 
     @ToString.Exclude
-    @ManyToMany(mappedBy = "users", cascade = CascadeType.ALL)
+    @ManyToMany(mappedBy = "members", cascade = CascadeType.ALL)
     List<ChatEntity> chats;
 
     @ToString.Exclude

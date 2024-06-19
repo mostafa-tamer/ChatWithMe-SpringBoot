@@ -19,6 +19,5 @@ public class RegistrationRequest {
     @NotBlank(message = "Nickname is mandatory")
     String nickname;
 
-    @NotBlank
     String firebaseToken;
 }

@@ -2,14 +2,17 @@ package com.mostafatamer.trysomethingcrazy.controller;
 
 import com.mostafatamer.trysomethingcrazy.constants.MessageBrokers;
 import com.mostafatamer.trysomethingcrazy.domain.ApiResponse;
+import com.mostafatamer.trysomethingcrazy.domain.dto.UserDto;
 import com.mostafatamer.trysomethingcrazy.domain.dto.chat.ChatDto;
+import com.mostafatamer.trysomethingcrazy.domain.dto.firendRequest.FriendRequestDto;
+import com.mostafatamer.trysomethingcrazy.domain.dto.firendRequest.SendFriendRequestDto;
+import com.mostafatamer.trysomethingcrazy.domain.entity.ChatEntity;
+import com.mostafatamer.trysomethingcrazy.domain.entity.FriendRequestCompositeKey;
+import com.mostafatamer.trysomethingcrazy.domain.entity.FriendRequestEntity;
+import com.mostafatamer.trysomethingcrazy.domain.entity.UserEntity;
 import com.mostafatamer.trysomethingcrazy.domain.enumeration.MessageType;
 import com.mostafatamer.trysomethingcrazy.domain.firebase.AcceptFriendRequest;
 import com.mostafatamer.trysomethingcrazy.domain.firebase.CloudMessage;
-import com.mostafatamer.trysomethingcrazy.domain.dto.firendRequest.FriendRequestDto;
-import com.mostafatamer.trysomethingcrazy.domain.dto.firendRequest.SendFriendRequestDto;
-import com.mostafatamer.trysomethingcrazy.domain.dto.UserDto;
-import com.mostafatamer.trysomethingcrazy.domain.entity.*;
 import com.mostafatamer.trysomethingcrazy.exceptions.ClientException;
 import com.mostafatamer.trysomethingcrazy.mappers.impl.UserMapper;
 import com.mostafatamer.trysomethingcrazy.service.*;
@@ -41,7 +44,7 @@ public class FriendshipController {
         UserEntity sender = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
         UserEntity receiver = userService.findByUsername(sendFriendRequestDto.getReceiverUsername());
 
-        validation(sender, receiver);
+        sendFriendRequestValidation(sender, receiver);
 
         saveFriendRequest(sendFriendRequestDto, receiver, sender);
 
@@ -93,10 +96,7 @@ public class FriendshipController {
         friendshipService.save(friendRequestEntity);
     }
 
-    private void validation(UserEntity routCaller, UserEntity receiver) {
-        if (receiver.getFirebaseToken() == null)
-            throw new NullPointerException("token is null: " + receiver);
-
+    private void sendFriendRequestValidation(UserEntity routCaller, UserEntity receiver) {
         if (routCaller.getUsername().equals(receiver.getUsername()))
             throw new ClientException("sender and receiver are the same");
 
@@ -168,12 +168,20 @@ public class FriendshipController {
         );
     }
 
-    private void notifyAcceptFriendRequestTopic(UserEntity sender, ChatEntity savedChat) {
+    private void notifyAcceptFriendRequestTopic(
+            UserEntity sender,
+            ChatEntity savedChat
+    ) {
         String destination = MessageBrokers.ACCEPT_FRIEND_REQUEST + "/" + sender.getUsername();
 
         ChatDto chat = ChatDto.builder()
-                .friend(userMapper.entityToDto(sender))
+                .members(savedChat.getMembers().stream()
+                        .map(userMapper::entityToDto)
+                        .toList())
                 .tag(savedChat.getTag())
+                .lastMessage(
+                        chatService.entityToDtoConverter(chatService.findChatLastMessage(savedChat))
+                )
                 .build();
 
         messagingTemplate.convertAndSend(destination, chat);
@@ -182,7 +190,7 @@ public class FriendshipController {
     private ChatEntity saveChatBetweenSenderAndReceiver(UserEntity sender, UserEntity receiver) {
         return chatService.save(
                 ChatEntity.builder()
-                        .users(List.of(sender,receiver))
+                        .members(List.of(sender, receiver))
                         .build()
         );
     }

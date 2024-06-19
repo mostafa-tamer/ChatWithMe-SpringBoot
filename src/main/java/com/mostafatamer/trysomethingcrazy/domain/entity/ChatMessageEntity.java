@@ -1,10 +1,7 @@
 package com.mostafatamer.trysomethingcrazy.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +9,7 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @AllArgsConstructor
+@ToString
 @NoArgsConstructor
 @Table(name = "messages")
 public class ChatMessageEntity {
@@ -30,12 +28,13 @@ public class ChatMessageEntity {
 
     Long messageNumber;
 
+    @ToString.Exclude
+    @ManyToOne
+    @JoinColumn(nullable = false)
+    ChatEntity chat;
+
     @PrePersist
     public void prePersist() {
         this.timeStamp = LocalDateTime.now();
     }
-
-    @ManyToOne
-    @JoinColumn(nullable = false)
-    ChatEntity chat;
 }

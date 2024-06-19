@@ -9,8 +9,8 @@ import lombok.*;
 @NoArgsConstructor
 @Setter
 @Getter
-
 public class ChatMessageDto {
+    String chatTag;
     @NotEmpty
     String message;
     @NotEmpty

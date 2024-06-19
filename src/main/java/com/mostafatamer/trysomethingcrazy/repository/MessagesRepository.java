@@ -16,16 +16,11 @@ public interface MessagesRepository extends JpaRepository<ChatMessageEntity, Lon
     Optional<List<ChatMessageEntity>> findByChatId(Long id);
 
     @Query("""
-            SELECT cm
-            FROM ChatMessageEntity cm
-            WHERE
-            cm.timeStamp = (
-                SELECT MAX(cm2.timeStamp)
-                FROM ChatMessageEntity cm2
-                WHERE cm2.chat = :chat
-            )
+             SELECT MAX(cm.messageNumber)
+                FROM ChatMessageEntity cm
+                WHERE cm.chat  = :chat
             """)
-    Optional<ChatMessageEntity> getMessageWithMaxTimeStamp(@Param("chat") ChatEntity chat);
+    Optional<Integer> getLargestMessageNumberInChat(@Param("chat") ChatEntity chat);
 
     @Query("""
             SELECT cm.messageNumber

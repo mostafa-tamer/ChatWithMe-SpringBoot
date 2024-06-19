@@ -2,28 +2,30 @@ package com.mostafatamer.trysomethingcrazy.controller;
 
 import com.mostafatamer.trysomethingcrazy.constants.MessageBrokers;
 import com.mostafatamer.trysomethingcrazy.domain.ApiResponse;
-import com.mostafatamer.trysomethingcrazy.domain.dto.UserDto;
-import com.mostafatamer.trysomethingcrazy.domain.firebase.ChatMessage;
-import com.mostafatamer.trysomethingcrazy.domain.enumeration.MessageType;
 import com.mostafatamer.trysomethingcrazy.domain.dto.chat.ChatDto;
 import com.mostafatamer.trysomethingcrazy.domain.dto.chat.ChatLastMessage;
 import com.mostafatamer.trysomethingcrazy.domain.dto.chat.ChatMessageDto;
-import com.mostafatamer.trysomethingcrazy.domain.firebase.CloudMessage;
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatEntity;
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatMessageEntity;
 import com.mostafatamer.trysomethingcrazy.domain.entity.UserEntity;
+import com.mostafatamer.trysomethingcrazy.domain.enumeration.MessageType;
+import com.mostafatamer.trysomethingcrazy.domain.firebase.ChatMessage;
+import com.mostafatamer.trysomethingcrazy.domain.firebase.CloudMessage;
 import com.mostafatamer.trysomethingcrazy.mappers.impl.UserMapper;
 import com.mostafatamer.trysomethingcrazy.service.*;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
+import org.springframework.data.domain.Page;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.ZoneOffset;
 import java.util.List;
@@ -45,31 +47,40 @@ public class ChatController {
     private final MessagesService messagesService;
 
     private final FirebaseMessagingService firebaseMessagingService;
+    private final FriendshipService friendshipService;
 
-    @MessageMapping("/sendMessage/{chatTag}")
-    void sendMessageToFriend(
-            @DestinationVariable String chatTag,
-            @Payload @Valid ChatMessageDto chatMessageDto) {
+    @MessageMapping("/sendMessage")
+    void sendMessageToFriend(@Payload @Valid ChatMessageDto chatMessageDto) {
+        System.out.println(chatMessageDto);
 
-        ChatEntity chatEntity = chatService.findByChatTag(chatTag);
+        ChatEntity chatEntity = chatService.findByChatTag(chatMessageDto.getChatTag());
 
         ChatMessageEntity savedMessage = saveMessage(chatMessageDto, chatEntity);
 
         modifyTheMessageDto(chatMessageDto, savedMessage);
+        System.out.println("firebase");
 
         sendFirebaseMessage(chatMessageDto, chatEntity, savedMessage);
 
-        webSocketNewMessageNotification(chatTag, chatMessageDto);
+        webSocketNewMessageNotification(chatMessageDto, chatEntity);
     }
 
-    private static void modifyTheMessageDto(ChatMessageDto chatMessageDto, ChatMessageEntity savedMessage) {
+    private void modifyTheMessageDto(ChatMessageDto chatMessageDto, ChatMessageEntity savedMessage) {
         chatMessageDto.setTimeStamp(savedMessage.getTimeStamp().toEpochSecond(ZoneOffset.UTC));
         chatMessageDto.setMessageNumber(savedMessage.getMessageNumber());
     }
 
-    private void webSocketNewMessageNotification(String chatTag, ChatMessageDto chatMessageDto) {
-        String destination = MessageBrokers.SEND_MESSAGE_TO_CHAT + "/" + chatTag;
-        messagingTemplate.convertAndSend(destination, chatMessageDto);
+    private void webSocketNewMessageNotification(ChatMessageDto chatMessageDto, ChatEntity chatEntity) {
+        System.out.println("webSocketNewMessageNotification");
+
+        String destinationForPrivateChat = MessageBrokers.SEND_MESSAGE_TO_CHAT + "/" + chatMessageDto.getChatTag();
+        messagingTemplate.convertAndSend(destinationForPrivateChat, chatMessageDto);
+        System.out.println(destinationForPrivateChat);
+
+        for (UserEntity user : chatEntity.getMembers()) {
+            String destinationForFriendshipChatHub = MessageBrokers.SEND_MESSAGE_TO_CHAT + "/" + user.getUsername();
+            messagingTemplate.convertAndSend(destinationForFriendshipChatHub, chatMessageDto);
+        }
     }
 
     private void sendFirebaseMessage(ChatMessageDto chatMessageDto, ChatEntity chatEntity, ChatMessageEntity savedMessage) {
@@ -86,7 +97,9 @@ public class ChatController {
                                 .title(sender.getNickname())
                                 .chatDto(ChatDto.builder()
                                         .tag(chatEntity.getTag())
-                                        .friend(userMapper.entityToDto(sender))
+                                        .members(chatEntity.getMembers().stream()
+                                                .map(user -> userMapper.entityToDto(sender))
+                                                .toList())
                                         .build())
                                 .message(savedMessage.getMessage()))
                         .build()
@@ -105,11 +118,11 @@ public class ChatController {
         return messagesService.save(message);
     }
 
-
     @GetMapping("/messages")
     ApiResponse<List<ChatMessageDto>> messages(@DestinationVariable String chatTag) {
         ChatEntity chatEntity = chatService.findByChatTag(chatTag);
         List<ChatMessageEntity> chatMessages = messagesService.findByChatId(chatEntity.getId());
+
 
         return ApiResponse.<List<ChatMessageDto>>builder()
                 .data(chatMessages.stream()
@@ -123,23 +136,21 @@ public class ChatController {
     }
 
 
-    @GetMapping("/chats")
+    //    @GetMapping("/chats")
     ApiResponse<List<ChatDto>> chats() {
-        UserEntity user = userService.findByUsername(
-                AuthenticationService.getUserEntity().getUsername()
-        );
+        UserEntity request = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
 
-        List<ChatEntity> chats = chatService.getChats(user);
+        List<ChatEntity> chats = chatService.getAllChats(request);
 
         List<ChatDto> chatResponse = chats.stream()
-                .map(chatEntity -> {
-                    String other = getOtherUser(chatEntity, user).getUsername();
-                    UserEntity friendEntity = userService.findByUsername(other);
-                    UserDto friend = userMapper.entityToDto(friendEntity);
+                .map(chat -> {
+                    var members = chat.getMembers().stream()
+                            .map(userMapper::entityToDto)
+                            .toList();
 
                     return ChatDto.builder()
-                            .tag(chatEntity.getTag())
-                            .friend(friend)
+                            .tag(chat.getTag())
+                            .members(members)
                             .build();
                 }).toList();
 
@@ -148,8 +159,78 @@ public class ChatController {
                 .build();
     }
 
-    private UserEntity getOtherUser(ChatEntity chatEntity, UserEntity user) { 
-        return chatEntity.getUsers().stream()
+
+    @GetMapping("/pageableChats")
+    ApiResponse<Page<ChatDto>> chats(@DestinationVariable int page, @DestinationVariable int size) {
+        UserEntity request = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
+
+        Page<ChatEntity> chats = chatService.getAllChats(request, page, size);
+
+        Page<ChatDto> chatResponse = chats
+                .map(chat -> {
+                    var members = chat.getMembers().stream()
+                            .map(userMapper::entityToDto)
+                            .toList();
+
+                    var chatWithLastMessage = chatService.findChatLastMessage(chat);
+
+                    ChatMessageDto lastMessage = chatWithLastMessage != null ?
+                            chatService.entityToDtoConverter(chatWithLastMessage) : null;
+
+                    return ChatDto.builder()
+                            .tag(chat.getTag())
+                            .members(members)
+                            .lastMessage(lastMessage)
+                            .build();
+                });
+
+        return ApiResponse.<Page<ChatDto>>builder()
+                .data(chatResponse)
+                .build();
+    }
+
+
+//    @GetMapping("/chats")
+//    ApiResponse<List<ChatDto>> chats() {
+//        UserEntity user = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
+//
+//        List<ChatDto> chatResponse = getChats(user);
+//
+//        return ApiResponse.<List<ChatDto>>builder()
+//                .data(chatResponse)
+//                .build();
+//    }
+
+//
+//    private List<ChatDto> getChats(UserEntity user) {
+//        List<ChatEntity> chats = chatService.getChats(user);
+//
+//        return chats.stream()
+//                .map(chatEntity -> {
+//                    UserEntity friendEntity = getOtherUser(chatEntity, user);
+//                    UserDto friend = userMapper.entityToDto(friendEntity);
+//                    var chatWithLastMessage = chatService.findChatLastMessage(chatEntity);
+//
+//                    ChatMessageDto lastMessage = null;
+//
+//                    if (chatWithLastMessage != null)
+//                        lastMessage = ChatMessageDto.builder()
+//                                .senderUsername(chatWithLastMessage.getSenderUsername())
+//                                .message(chatWithLastMessage.getMessage())
+//                                .timeStamp(chatWithLastMessage.getTimeStamp().toEpochSecond(ZoneOffset.UTC))
+//                                .messageNumber(chatWithLastMessage.getMessageNumber())
+//                                .build();
+//
+//                    return ChatDto.builder()
+//                            .tag(chatEntity.getTag())
+//                            .members(friend)
+//                            .lastMessage(lastMessage)
+//                            .build();
+//                }).toList();
+//    }
+
+    private UserEntity getOtherUser(ChatEntity chatEntity, UserEntity user) {
+        return chatEntity.getMembers().stream()
                 .filter(userEntity -> !userEntity.getUsername().equals(user.getUsername()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("other not found"));
