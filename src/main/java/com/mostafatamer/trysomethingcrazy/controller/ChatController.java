@@ -15,6 +15,7 @@ import com.mostafatamer.trysomethingcrazy.mappers.impl.UserMapper;
 import com.mostafatamer.trysomethingcrazy.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.java.Log;
 import org.springframework.data.domain.Page;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -135,33 +136,10 @@ public class ChatController {
                 .build();
     }
 
-
-    //    @GetMapping("/chats")
-    ApiResponse<List<ChatDto>> chats() {
-        UserEntity request = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
-
-        List<ChatEntity> chats = chatService.getAllChats(request);
-
-        List<ChatDto> chatResponse = chats.stream()
-                .map(chat -> {
-                    var members = chat.getMembers().stream()
-                            .map(userMapper::entityToDto)
-                            .toList();
-
-                    return ChatDto.builder()
-                            .tag(chat.getTag())
-                            .members(members)
-                            .build();
-                }).toList();
-
-        return ApiResponse.<List<ChatDto>>builder()
-                .data(chatResponse)
-                .build();
-    }
-
-
-    @GetMapping("/pageableChats")
-    ApiResponse<Page<ChatDto>> chats(@DestinationVariable int page, @DestinationVariable int size) {
+    @SneakyThrows
+    @GetMapping("/chats")
+    ApiResponse<Page<ChatDto>> chats(@DestinationVariable Integer page, @DestinationVariable Integer size) {
+        Thread.sleep(1500);
         UserEntity request = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
 
         Page<ChatEntity> chats = chatService.getAllChats(request, page, size);
@@ -188,46 +166,6 @@ public class ChatController {
                 .data(chatResponse)
                 .build();
     }
-
-
-//    @GetMapping("/chats")
-//    ApiResponse<List<ChatDto>> chats() {
-//        UserEntity user = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
-//
-//        List<ChatDto> chatResponse = getChats(user);
-//
-//        return ApiResponse.<List<ChatDto>>builder()
-//                .data(chatResponse)
-//                .build();
-//    }
-
-//
-//    private List<ChatDto> getChats(UserEntity user) {
-//        List<ChatEntity> chats = chatService.getChats(user);
-//
-//        return chats.stream()
-//                .map(chatEntity -> {
-//                    UserEntity friendEntity = getOtherUser(chatEntity, user);
-//                    UserDto friend = userMapper.entityToDto(friendEntity);
-//                    var chatWithLastMessage = chatService.findChatLastMessage(chatEntity);
-//
-//                    ChatMessageDto lastMessage = null;
-//
-//                    if (chatWithLastMessage != null)
-//                        lastMessage = ChatMessageDto.builder()
-//                                .senderUsername(chatWithLastMessage.getSenderUsername())
-//                                .message(chatWithLastMessage.getMessage())
-//                                .timeStamp(chatWithLastMessage.getTimeStamp().toEpochSecond(ZoneOffset.UTC))
-//                                .messageNumber(chatWithLastMessage.getMessageNumber())
-//                                .build();
-//
-//                    return ChatDto.builder()
-//                            .tag(chatEntity.getTag())
-//                            .members(friend)
-//                            .lastMessage(lastMessage)
-//                            .build();
-//                }).toList();
-//    }
 
     private UserEntity getOtherUser(ChatEntity chatEntity, UserEntity user) {
         return chatEntity.getMembers().stream()

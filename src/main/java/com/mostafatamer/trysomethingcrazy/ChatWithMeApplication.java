@@ -1,12 +1,6 @@
 package com.mostafatamer.trysomethingcrazy;
 
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
-import jdk.jfr.Registered;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.boot.CommandLineRunner;
@@ -14,10 +8,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
-import javax.annotation.security.RunAs;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
 
 @SpringBootApplication
 @EnableJpaAuditing
@@ -32,18 +23,11 @@ public class ChatWithMeApplication implements CommandLineRunner {
 
     @SneakyThrows
     @Override
-    public void run(String... args) throws ExecutionException, InterruptedException, FirebaseMessagingException {
+    public void run(String... args) {
         System.out.println("Running...");
 
         InetAddress ip = InetAddress.getLocalHost();
         System.out.println("Ip: " + ip.getHostAddress());
-
-//Runnable rana = () -> {
-//    System.out.println("Rana is runnable");
-//};
-//
-//Thread t = new Thread(rana);
-//t.start();
 
     }
 }
