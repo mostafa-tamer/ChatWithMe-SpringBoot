@@ -16,7 +16,6 @@ public class CloudMessage<T> {
     MessageType messageType;
     T data;
 
-
     @SneakyThrows
     @Override
     public String toString() {

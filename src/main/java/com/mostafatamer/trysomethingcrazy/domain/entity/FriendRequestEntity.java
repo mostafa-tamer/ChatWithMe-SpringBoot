@@ -17,6 +17,7 @@ public class FriendRequestEntity {
     FriendRequestCompositeKey friendRequestCompositeKey;
 
     String message;
+
 }
 
 

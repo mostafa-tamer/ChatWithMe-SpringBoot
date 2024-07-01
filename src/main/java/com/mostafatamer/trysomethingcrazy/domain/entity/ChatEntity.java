@@ -24,6 +24,11 @@ public class ChatEntity {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "chat")
     List<ChatMessageEntity> messages;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    List<UserEntity> members; // they must be exactly 2
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    List<UserEntity> members;
+
+    String chatGroupName;
+
+    @Column(columnDefinition = "boolean default false")
+    Boolean isGroupChat = false;
 }

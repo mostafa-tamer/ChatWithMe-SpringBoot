@@ -5,6 +5,9 @@ import com.mostafatamer.trysomethingcrazy.domain.entity.ChatMessageEntity;
 import com.mostafatamer.trysomethingcrazy.exceptions.ClientException;
 import com.mostafatamer.trysomethingcrazy.repository.MessagesRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -37,5 +40,10 @@ public class MessagesService {
 
     public List<ChatMessageEntity> findByChatId(Long id) {
         return messagesRepository.findByChatId(id).orElseThrow(() -> new ClientException("messages not found"));
+    }
+
+    public Page<ChatMessageEntity> getPageableMessages(ChatEntity chatEntity, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return messagesRepository.findByChatOrderByTimeStampDesc(chatEntity, pageable);
     }
 }

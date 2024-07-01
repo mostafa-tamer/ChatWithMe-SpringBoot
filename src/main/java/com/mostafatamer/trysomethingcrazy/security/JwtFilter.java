@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +23,7 @@ import java.io.IOException;
  * This filter extracts JWT tokens from incoming requests, validates them,
  * and sets up the authentication context for authenticated users.
  */
+@Log
 @Service
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
@@ -39,16 +41,19 @@ public class JwtFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         // Extracting JWT token from request header
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String jwt = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+//        log.info("token: " + jwt);
 
         // If no token is found in the header, continue with filter chain
-        if (header == null) {
+        if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         // Extracting username from JWT token
-        String username = jwtService.extractUsername(header);
+
+        String username = jwtService.extractUsername(jwt);
 
         // Checking if user is authenticated and no existing authentication in SecurityContextHolder
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -56,7 +61,7 @@ public class JwtFilter extends OncePerRequestFilter {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             // Validating JWT token
-            if (jwtService.isTokenValid(header, userDetails)) {
+            if (jwtService.isTokenValid(jwt, userDetails)) {
                 // Creating UsernamePasswordAuthenticationToken with UserDetails and authorities
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails,

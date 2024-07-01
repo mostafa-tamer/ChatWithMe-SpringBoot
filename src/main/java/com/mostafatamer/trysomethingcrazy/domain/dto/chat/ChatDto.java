@@ -13,6 +13,7 @@ import java.util.List;
 @Getter
 public class ChatDto {
     String tag;
+    String groupName;
     List<UserDto> members;
     ChatMessageDto lastMessage;
 }

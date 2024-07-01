@@ -27,8 +27,8 @@ import java.util.List;
 
 @Log
 @RestController
-@RequestMapping("/friendship")
 @RequiredArgsConstructor
+@RequestMapping("/friendship")
 public class FriendshipController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -58,6 +58,125 @@ public class FriendshipController {
 
         return ApiResponse.<SendFriendRequestDto>builder()
                 .data(sendFriendRequestDto)
+                .build();
+    }
+
+    @GetMapping("/friendRequests")
+    ApiResponse<List<FriendRequestDto>> friendRequests() throws InterruptedException {
+        Thread.sleep(750);
+        UserEntity me = AuthenticationService.getUserEntity();
+
+        List<FriendRequestEntity> friendRequestsEntities = friendshipService.findAllByReceiver(me);
+
+        List<FriendRequestDto> friendRequests = friendRequestsEntities.stream()
+                .map(requestEntity -> {
+                    UserEntity sender = userService.findById(
+                            requestEntity.getFriendRequestCompositeKey()
+                                    .getSenderId()
+                    );
+
+                    return FriendRequestDto.builder()
+                            .sender(userMapper.entityToDto(sender))
+                            .message(requestEntity.getMessage())
+                            .build();
+                }).toList();
+
+        return ApiResponse.<List<FriendRequestDto>>builder()
+                .data(friendRequests)
+                .build();
+    }
+
+    @PostMapping("/acceptFriendRequest")
+    ApiResponse<UserDto> acceptFriendRequest(@DestinationVariable String senderUsername) {
+        UserEntity sender = userService.findByUsername(senderUsername);
+        UserEntity receiver = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
+
+        List<UserEntity> senderFriends = sender.getFriends();
+        List<UserEntity> receiverFriends = receiver.getFriends();
+
+        acceptFriendRequestValidation(receiverFriends, sender, senderFriends, receiver);
+
+        makeSenderAndReceiverFriends(receiverFriends, sender, senderFriends, receiver);
+
+        deleteFriendRequest(sender, receiver);
+
+        ChatEntity savedChat = saveChatBetweenSenderAndReceiver(sender, receiver);
+
+        notifyAcceptFriendRequestTopic(sender, savedChat);
+
+        notifyFirebaseThatFriendRequestAccepted(sender, receiver);
+
+        return ApiResponse.<UserDto>builder()
+                .data(userMapper.entityToDto(sender))
+                .build();
+    }
+
+    @PostMapping("/removeFriendRequest")
+    ApiResponse<UserDto> removeFriendRequest(@DestinationVariable String senderUsername) {
+        UserEntity sender = userService.findByUsername(senderUsername);
+        UserEntity receiver = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
+
+        deleteFriendRequest(sender, receiver);
+
+        return ApiResponse.<UserDto>builder()
+                .data(userMapper.entityToDto(sender))
+                .build();
+    }
+
+    @GetMapping("/friends")
+    ApiResponse<List<UserDto>> friends() {
+        UserEntity caller = AuthenticationService.getUserEntity();
+        List<UserEntity> friends = userService.findByUsername(caller.getUsername()).getFriends();
+        return ApiResponse.<List<UserDto>>builder()
+                .data(friends.stream().map(userMapper::entityToDto).toList())
+                .build();
+    }
+
+    @GetMapping("/totalNumberOfFriendRequests")
+    ApiResponse<Integer> totalNumberOfFriends() {
+        UserEntity caller = AuthenticationService.getUserEntity();
+        Integer friendsNumber = friendshipService.findAllByReceiver(caller).size();
+
+        return ApiResponse.<Integer>builder()
+                .data(friendsNumber)
+                .build();
+    }
+
+    @PostMapping("/remove_friend")
+    ApiResponse<UserDto> removeFriend(@DestinationVariable String friendUsername) {
+        UserEntity client = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
+        UserEntity friend = userService.findByUsername(friendUsername);
+
+        System.out.println(friend.getFriends());
+        System.out.println(client.getFriends());
+
+        if (!friend.getFriends().contains(client)) {
+            throw new ClientException("You are not already friends!");
+        }
+
+        client.getFriends().remove(friend);
+        friend.getFriends().remove(client);
+
+        userService.save(client);
+        userService.save(friend);
+
+        ChatEntity chat = chatService.findChatOfTwoFriends(client, friend);
+
+
+        chat.getMembers().clear();
+
+        chatService.updateChat(chat);
+
+        chatService.removeChat(chat);
+
+        String destination = MessageBrokers.REMOVE_FRIEND + "/" + friendUsername;
+
+        messagingTemplate.convertAndSend(destination, ChatDto.builder()
+                .tag(chat.getTag())
+                .build());
+
+        return ApiResponse.<UserDto>builder()
+                .data(userMapper.entityToDto(friend))
                 .build();
     }
 
@@ -107,56 +226,6 @@ public class FriendshipController {
             throw new ClientException("request already sent!");
     }
 
-    @GetMapping("/friendRequests")
-    ApiResponse<List<FriendRequestDto>> friendRequests() {
-        UserEntity me = AuthenticationService.getUserEntity();
-
-        List<FriendRequestEntity> friendRequestsEntities = friendshipService.findAllByReceiver(me);
-
-        List<FriendRequestDto> friendRequests = friendRequestsEntities.stream()
-                .map(requestEntity -> {
-                    UserEntity sender = userService.findById(
-                            requestEntity.getFriendRequestCompositeKey()
-                                    .getSenderId()
-                    );
-
-                    return FriendRequestDto.builder()
-                            .sender(userMapper.entityToDto(sender))
-                            .message(requestEntity.getMessage())
-                            .build();
-                }).toList();
-
-        return ApiResponse.<List<FriendRequestDto>>builder()
-                .data(friendRequests)
-                .build();
-    }
-
-
-    @PutMapping("/acceptFriendRequest")
-    ApiResponse<UserDto> acceptFriendRequest(@DestinationVariable String senderUsername) {
-        UserEntity sender = userService.findByUsername(senderUsername);
-        UserEntity receiver = userService.findByUsername(AuthenticationService.getUserEntity().getUsername());
-
-        List<UserEntity> senderFriends = sender.getFriends();
-        List<UserEntity> receiverFriends = receiver.getFriends();
-
-        acceptFriendRequestValidation(receiverFriends, sender, senderFriends, receiver);
-
-        makeSenderAndReceiverFriends(receiverFriends, sender, senderFriends, receiver);
-
-        deleteFriendRequest(sender, receiver);
-
-        ChatEntity savedChat = saveChatBetweenSenderAndReceiver(sender, receiver);
-
-        notifyAcceptFriendRequestTopic(sender, savedChat);
-
-        notifyFirebaseThatFriendRequestAccepted(sender, receiver);
-
-        return ApiResponse.<UserDto>builder()
-                .data(userMapper.entityToDto(sender))
-                .build();
-    }
-
     private void notifyFirebaseThatFriendRequestAccepted(UserEntity sender, UserEntity receiver) {
         firebaseMessagingService.sendClientMessage(
                 sender.getFirebaseToken(), CloudMessage.builder()
@@ -168,10 +237,7 @@ public class FriendshipController {
         );
     }
 
-    private void notifyAcceptFriendRequestTopic(
-            UserEntity sender,
-            ChatEntity savedChat
-    ) {
+    private void notifyAcceptFriendRequestTopic(UserEntity sender, ChatEntity savedChat) {
         String destination = MessageBrokers.ACCEPT_FRIEND_REQUEST + "/" + sender.getUsername();
 
         ChatDto chat = ChatDto.builder()
@@ -179,16 +245,14 @@ public class FriendshipController {
                         .map(userMapper::entityToDto)
                         .toList())
                 .tag(savedChat.getTag())
-                .lastMessage(
-                        chatService.entityToDtoConverter(chatService.findChatLastMessage(savedChat))
-                )
+                .lastMessage(null)
                 .build();
 
         messagingTemplate.convertAndSend(destination, chat);
     }
 
     private ChatEntity saveChatBetweenSenderAndReceiver(UserEntity sender, UserEntity receiver) {
-        return chatService.save(
+        return chatService.createChat(
                 ChatEntity.builder()
                         .members(List.of(sender, receiver))
                         .build()
@@ -217,24 +281,5 @@ public class FriendshipController {
         if (!friendshipService.isFriendRequestAlreadySent(sender.getId(), receiver.getId()))
             throw new ClientException("there is not friend request sent");
     }
-
-
-    @GetMapping("/friends")
-    ApiResponse<List<UserDto>> friends() {
-        UserEntity caller = AuthenticationService.getUserEntity();
-        List<UserEntity> friends = userService.findByUsername(caller.getUsername()).getFriends();
-        return ApiResponse.<List<UserDto>>builder()
-                .data(friends.stream().map(userMapper::entityToDto).toList())
-                .build();
-    }
-
-    @GetMapping("/totalNumberOfFriendRequests")
-    ApiResponse<Integer> totalNumberOfFriends() {
-        UserEntity caller = AuthenticationService.getUserEntity();
-        Integer friendsNumber = friendshipService.findAllByReceiver(caller).size();
-
-        return ApiResponse.<Integer>builder()
-                .data(friendsNumber)
-                .build();
-    }
 }
+

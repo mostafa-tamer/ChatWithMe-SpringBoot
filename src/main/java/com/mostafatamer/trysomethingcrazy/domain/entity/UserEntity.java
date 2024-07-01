@@ -35,10 +35,6 @@ public class UserEntity implements UserDetails, Principal {
 
     @ToString.Exclude
     @ManyToMany(cascade = CascadeType.ALL)
-    List<GroupEntity> groups;
-
-    @ToString.Exclude
-    @ManyToMany(cascade = CascadeType.ALL)
     List<UserEntity> friends;
 
     @ToString.Exclude

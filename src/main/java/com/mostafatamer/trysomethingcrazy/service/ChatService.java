@@ -1,5 +1,6 @@
 package com.mostafatamer.trysomethingcrazy.service;
 
+import com.mostafatamer.trysomethingcrazy.domain.dto.UserDto;
 import com.mostafatamer.trysomethingcrazy.domain.dto.chat.ChatMessageDto;
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatEntity;
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatMessageEntity;
@@ -24,8 +25,12 @@ public class ChatService {
 
     private final ChatRepository chatRepository;
 
-    public ChatEntity save(ChatEntity chatEntity) {
+    public ChatEntity createChat(ChatEntity chatEntity) {
         chatEntity.setTag(UUID.randomUUID().toString());
+        return chatRepository.save(chatEntity);
+    }
+
+    public ChatEntity updateChat(ChatEntity chatEntity) {
         return chatRepository.save(chatEntity);
     }
 
@@ -42,6 +47,10 @@ public class ChatService {
         return chats;
     }
 
+    public ChatEntity findChatOfTwoFriends(UserEntity user, UserEntity userFriend) {
+        return chatRepository.findChatByUsers(userFriend, user).orElseThrow(() -> new ClientException("Chat not found"));
+    }
+
     public ChatEntity findByChatTag(String chatTag) {
         return chatRepository.findByTag(chatTag).orElseThrow(() -> new ClientException("chat not found"));
     }
@@ -54,18 +63,24 @@ public class ChatService {
         return chatRepository.findLastMessage(chatEntity).orElse(null);
     }
 
-    public List<ChatEntity> getAllChats(UserEntity user) {
-        return chatRepository.findByUser(user);
+    public List<ChatEntity> getPrivateChats(UserEntity user) {
+        return chatRepository.findPrivateChats(user);
     }
 
-    public Page<ChatEntity> getAllChats(UserEntity user, int page, int size) {
+    public Page<ChatEntity> getPrivateChats(UserEntity user, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return chatRepository.findByUser(user, pageable);
+        return chatRepository.findPrivateChats(user, pageable);
     }
 
-    public ChatMessageDto entityToDtoConverter(ChatMessageEntity chatMessageEntity) {
+    public Page<ChatEntity> getGroupsChat(UserEntity user, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return chatRepository.findGroupsChat(user, pageable);
+    }
+
+    public ChatMessageDto chatMessageEntityToDtoConverter(ChatMessageEntity chatMessageEntity, UserDto sender) {
         return ChatMessageDto.builder()
-                .senderUsername(chatMessageEntity.getSenderUsername())
+                .chatTag(chatMessageEntity.getChat().getTag())
+                .sender(sender)
                 .message(chatMessageEntity.getMessage())
                 .timeStamp(chatMessageEntity.getTimeStamp().toEpochSecond(ZoneOffset.UTC))
                 .messageNumber(chatMessageEntity.getMessageNumber())
@@ -73,7 +88,35 @@ public class ChatService {
     }
 
 
-//    public List<ChatMessageEntity> findChatLastMessage(ChatEntity chatEntity) {
-//        return chatRepository.findLastMessage(chatEntity) ;
-//    }
+    public ChatEntity addFriendToGroup(String chatTag, UserEntity friend) {
+
+        ChatEntity chat = chatRepository.findByTag(chatTag)
+                .orElseThrow(() -> new ClientException("Chat Tag Not Found"));
+
+        chat.getMembers().add(friend);
+
+        chatRepository.save(chat);
+
+        return chat;
+    }
+
+    public ChatEntity leaveChatGroup(String chatTag, UserEntity client) {
+        ChatEntity chat = chatRepository.findByTag(chatTag)
+                .orElseThrow(() -> new ClientException("Chat Tag Not Found"));
+
+        chat.getMembers().remove(client);
+
+        if (chat.getMembers().isEmpty()) {
+            chatRepository.delete(chat);
+        } else {
+            chatRepository.save(chat);
+        }
+
+
+        return chat;
+    }
+
+    public void removeChat(ChatEntity chat) {
+        chatRepository.delete(chat);
+    }
 }

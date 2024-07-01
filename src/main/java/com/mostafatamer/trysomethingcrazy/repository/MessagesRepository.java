@@ -2,6 +2,8 @@ package com.mostafatamer.trysomethingcrazy.repository;
 
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatEntity;
 import com.mostafatamer.trysomethingcrazy.domain.entity.ChatMessageEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -45,4 +47,7 @@ public interface MessagesRepository extends JpaRepository<ChatMessageEntity, Lon
             )
             """)
     Optional<Long> findLastMessageNumber(String chatTag);
+
+
+    Page<ChatMessageEntity> findByChatOrderByTimeStampDesc(ChatEntity chatEntity, Pageable pageable);
 }

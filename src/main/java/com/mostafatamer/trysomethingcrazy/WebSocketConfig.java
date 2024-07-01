@@ -16,7 +16,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         config.enableSimpleBroker(
                 MessageBrokers.SEND_MESSAGE_TO_CHAT,
                 MessageBrokers.SEND_FRIEND_REQUEST,
-                MessageBrokers.ACCEPT_FRIEND_REQUEST
+                MessageBrokers.ACCEPT_FRIEND_REQUEST,
+                MessageBrokers.ADD_TO_GROUP,
+                MessageBrokers.REMOVE_FRIEND
         );
 
         config.setApplicationDestinationPrefixes("/app");

@@ -26,6 +26,7 @@ public class FirebaseMessagingService {
 
     @SneakyThrows
     public <T> void sendClientMessage(String token, CloudMessage<T> payload) {
+        System.out.println(payload);
         if (token != null) {
             Message msg = Message.builder()
                     .setToken(token)

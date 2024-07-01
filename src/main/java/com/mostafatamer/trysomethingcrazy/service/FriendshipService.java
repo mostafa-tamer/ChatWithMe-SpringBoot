@@ -24,9 +24,9 @@ public class FriendshipService {
         return friendshipRepository.findByFriendRequestCompositeKeyReceiver(user);
     }
 
-    public Optional<FriendRequestEntity> findByFriendRequestCompositeKey(FriendRequestCompositeKey friendRequestCompositeKey) {
-        return friendshipRepository.findByFriendRequestCompositeKey(friendRequestCompositeKey);
-    }
+//    public Optional<FriendRequestEntity> findByFriendRequestCompositeKey(FriendRequestCompositeKey friendRequestCompositeKey) {
+//        return friendshipRepository.findByFriendRequestCompositeKey(friendRequestCompositeKey);
+//    }
 
 
     public boolean isFriendRequestAlreadySent(Long senderId, Long receiverId) {
