@@ -6,7 +6,7 @@ This project is an Android-Spring Boot chat application that provides authentica
 
 [ChatWithMe Android Repository](https://github.com/mostafa-tamer/ChatWithMeAndroid.git)
 
-## Back-End (Spring Boot)
+## Technologies
 
 - **Hibernate & JPA**
 - **PostgreSQL (DB)**
@@ -85,5 +85,3 @@ This project is an Android-Spring Boot chat application that provides authentica
 2. User accepts a friend request.
 3. User sends a friend request.
 4. User added to a group.
-
-For more details and to contribute, visit the [Android Repository](https://github.com/mostafa-tamer/ChatWithMeAndroid.git).
